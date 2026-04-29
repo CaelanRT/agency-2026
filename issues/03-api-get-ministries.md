@@ -1,20 +1,20 @@
 # 03: GET /api/ministries Endpoint
 
-**Status:** open
+**Status:** completed
 **Priority:** high
 **Blocked by:** 01
 **Blocks:** 10
 
 ## Description
 
-Implement the endpoint that returns a list of distinct ministries from BigQuery `ab_contracts` table.
+Implement the endpoint that returns a list of distinct ministries from the `ab_contracts` table in PostgreSQL.
 
 ## Acceptance Criteria
 
 - [ ] `GET /api/ministries` returns `{ ministries: string[] }`
-- [ ] Queries `SELECT DISTINCT ministry FROM {dataset}.ab_contracts ORDER BY ministry`
+- [ ] Queries `SELECT DISTINCT ministry FROM ab.ab_contracts ORDER BY ministry`
 - [ ] Returns sorted list of ministry names
-- [ ] Handles BigQuery errors gracefully (500 with error message)
+- [ ] Handles database errors gracefully (500 with error message)
 
 ## API Response
 

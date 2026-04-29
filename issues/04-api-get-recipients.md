@@ -1,6 +1,6 @@
 # 04: GET /api/recipients Endpoint
 
-**Status:** open
+**Status:** completed
 **Priority:** high
 **Blocked by:** 01
 **Blocks:** 11
@@ -12,12 +12,12 @@ Implement the endpoint that returns top 10 recipients for a given ministry, with
 ## Acceptance Criteria
 
 - [ ] `GET /api/recipients?ministry=Health` returns top 10 recipients
-- [ ] Queries `ab_contracts` for top recipients by total spend for the given ministry
-- [ ] Queries `ab_sole_source` for sole-source totals by recipient
+- [ ] Queries `ab.ab_contracts` for top recipients by total spend for the given ministry
+- [ ] Queries `ab.ab_sole_source` for sole-source totals by recipient
 - [ ] Joins results in application code on `recipient` field
 - [ ] Computes `share` = recipient_total / ministry_total_spend
 - [ ] Returns 400 if `ministry` query param is missing
-- [ ] Handles BigQuery errors gracefully (500 with error message)
+- [ ] Handles database errors gracefully (500 with error message)
 - [ ] Uses parameterized queries (not string interpolation) for SQL safety
 
 ## API Response
@@ -41,7 +41,7 @@ Implement the endpoint that returns top 10 recipients for a given ministry, with
 ```sql
 -- Top recipients
 SELECT recipient, SUM(amount) AS total_spend
-FROM `{dataset}.ab_contracts`
+FROM ab.ab_contracts
 WHERE ministry = @ministry
 GROUP BY recipient
 ORDER BY total_spend DESC
@@ -49,7 +49,7 @@ LIMIT 10;
 
 -- Sole source totals for those recipients
 SELECT recipient, SUM(amount) AS sole_source_total
-FROM `{dataset}.ab_sole_source`
+FROM ab.ab_sole_source
 GROUP BY recipient;
 ```
 

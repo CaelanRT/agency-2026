@@ -1,6 +1,6 @@
 # 08: Risk Indicators Component
 
-**Status:** open
+**Status:** todo
 **Priority:** medium
 **Blocked by:** 02
 **Blocks:** 11

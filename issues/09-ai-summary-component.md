@@ -1,6 +1,6 @@
 # 09: AI Summary Display Component
 
-**Status:** open
+**Status:** todo
 **Priority:** high
 **Blocked by:** 02
 **Blocks:** 12

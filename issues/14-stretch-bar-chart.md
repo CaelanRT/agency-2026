@@ -1,6 +1,6 @@
 # 14: Stretch - Bar Chart Visualization
 
-**Status:** open
+**Status:** todo
 **Priority:** low
 **Blocked by:** 13
 **Blocks:** none

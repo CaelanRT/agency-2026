@@ -1,23 +1,23 @@
 # 05: GET /api/summary Endpoint (AI Layer)
 
-**Status:** open
+**Status:** completed
 **Priority:** high
 **Blocked by:** 01
 **Blocks:** 12
 
 ## Description
 
-Implement the AI summary endpoint that generates a plain-English risk summary for a selected ministry using Claude API (or OpenAI).
+Implement the AI summary endpoint that generates a plain-English risk summary for a selected ministry using the OpenAI API.
 
 ## Acceptance Criteria
 
 - [ ] `GET /api/summary?ministry=Health` returns an AI-generated risk summary
 - [ ] Internally calls the recipients logic (or `/api/recipients`) to get data
 - [ ] Constructs a prompt with: top vendor, total spend, vendor share %, sole source totals
-- [ ] Calls Claude API (preferred) or OpenAI API to generate a 2-3 sentence summary
+- [ ] Calls OpenAI API to generate a 2-3 sentence summary
 - [ ] Returns 400 if `ministry` query param is missing
 - [ ] Handles AI API errors gracefully
-- [ ] Add `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) to `.env` config
+- [ ] Add `OPENAI_API_KEY` to `.env` config
 
 ## API Response
 
@@ -37,7 +37,7 @@ The prompt should:
 
 ## Dependencies (npm)
 
-- `@anthropic-ai/sdk` or `openai`
+- `openai`
 
 ## Notes
 

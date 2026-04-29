@@ -1,6 +1,6 @@
 # 01: Backend Project Setup
 
-**Status:** open
+**Status:** completed
 **Priority:** high
 **Blocked by:** none
 **Blocks:** 03, 04, 05
@@ -14,24 +14,25 @@ Initialize the Express + TypeScript backend project in a `backend/` directory at
 - [ ] `backend/` directory with `package.json` (type: module)
 - [ ] TypeScript configured (`tsconfig.json`)
 - [ ] Express server in `backend/src/index.ts` listening on port 3001
-- [ ] BigQuery client initialized (`@google-cloud/bigquery`)
-- [ ] CORS enabled for `http://localhost:5173` (Vite dev server)
+- [ ] PostgreSQL connection pool initialized (`pg`)
+- [ ] CORS enabled for `http://localhost:5174` (Vite dev server)
 - [ ] `npm run dev` script using `tsx` or `ts-node` for hot reload
-- [ ] `.env` support for `GCP_PROJECT_ID` and `BQ_DATASET` env vars
+- [ ] `.env` support for `DATABASE_URL` env var
 - [ ] Health check endpoint: `GET /api/health` returns `{ status: "ok" }`
 
 ## Dependencies (npm)
 
 - express
-- @google-cloud/bigquery
+- pg
 - cors
 - dotenv
 - tsx (dev)
 - typescript (dev)
 - @types/express (dev)
 - @types/cors (dev)
+- @types/pg (dev)
 
 ## Notes
 
-- The GCP project and dataset will be provided via environment variables
-- BigQuery auth should use Application Default Credentials (ADC)
+- The PostgreSQL connection string is provided via `DATABASE_URL` environment variable
+- Database is hosted on Render (PostgreSQL)

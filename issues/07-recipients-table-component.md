@@ -1,6 +1,6 @@
 # 07: Recipients Table Component
 
-**Status:** open
+**Status:** todo
 **Priority:** high
 **Blocked by:** 02
 **Blocks:** 11
