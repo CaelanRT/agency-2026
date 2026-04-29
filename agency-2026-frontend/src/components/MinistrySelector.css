@@ -1,0 +1,27 @@
+.ministry-selector {
+  font-family: var(--sans);
+  font-size: 14px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-sm);
+  background: var(--primary-light);
+  color: #fff;
+  cursor: pointer;
+  min-width: 280px;
+  outline: none;
+}
+
+.ministry-selector:focus {
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15);
+}
+
+.ministry-selector:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ministry-selector option {
+  background: #fff;
+  color: var(--gray-800);
+}

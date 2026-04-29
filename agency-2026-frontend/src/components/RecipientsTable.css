@@ -1,0 +1,112 @@
+.recipients-table__container {
+  overflow-x: auto;
+}
+
+.recipients-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+  font-size: 14px;
+}
+
+.recipients-table thead th {
+  text-align: left;
+  padding: 0 0 var(--space-sm);
+  color: var(--gray-600);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.recipients-table tbody td {
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--gray-100);
+  color: var(--gray-700);
+  vertical-align: middle;
+}
+
+.recipients-table tbody td:nth-child(1) {
+  width: 64px;
+  color: var(--gray-500);
+}
+
+.recipients-table tbody td:nth-child(3),
+.recipients-table tbody td:nth-child(4),
+.recipients-table tbody td:nth-child(5) {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.recipients-table__row:last-child td {
+  border-bottom: none;
+}
+
+.recipients-table__row--flagged td {
+  background: rgba(192, 86, 33, 0.08);
+}
+
+.recipients-table__recipient {
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.recipients-table__empty {
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+  padding: var(--space-xl);
+  color: var(--gray-500);
+  text-align: center;
+  border: 1px dashed var(--gray-300);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #ffffff 0%, var(--gray-50) 100%);
+}
+
+.recipients-table__skeleton {
+  display: inline-block;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--gray-100) 0%,
+    var(--gray-200) 45%,
+    var(--gray-100) 100%
+  );
+  background-size: 200% 100%;
+  animation: recipients-table-shimmer 1.4s ease-in-out infinite;
+}
+
+.recipients-table__skeleton--rank {
+  width: 20px;
+}
+
+.recipients-table__skeleton--name {
+  width: 220px;
+  max-width: 100%;
+}
+
+.recipients-table__skeleton--value {
+  width: 110px;
+}
+
+.recipients-table__skeleton--percent {
+  width: 60px;
+}
+
+@keyframes recipients-table-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 800px) {
+  .recipients-table {
+    min-width: 680px;
+  }
+}

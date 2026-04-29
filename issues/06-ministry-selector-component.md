@@ -1,6 +1,6 @@
 # 06: Ministry Selector Dropdown Component
 
-**Status:** todo
+**Status:** completed
 **Priority:** high
 **Blocked by:** 02
 **Blocks:** 10
