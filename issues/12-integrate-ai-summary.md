@@ -1,6 +1,6 @@
 # 12: Integrate AI Summary with API
 
-**Status:** todo
+**Status:** completed
 **Priority:** high
 **Blocked by:** 05, 09
 **Blocks:** 13

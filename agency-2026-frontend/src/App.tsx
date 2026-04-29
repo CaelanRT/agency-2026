@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
+import AISummary from './components/AISummary'
 import RecipientsTable from './components/RecipientsTable'
 import RiskIndicators from './components/RiskIndicators'
 import MinistrySelector from './components/MinistrySelector'
-import { fetchMinistries, fetchRecipients } from './api'
+import { fetchMinistries, fetchRecipients, fetchSummary } from './api'
 import type { Recipient } from './types'
 import './App.css'
 
@@ -16,6 +17,8 @@ function App() {
   const [loadingRecipients, setLoadingRecipients] = useState(false)
   const [recipientsError, setRecipientsError] = useState<string | null>(null)
   const [summary, setSummary] = useState<string | null>(null)
+  const [loadingSummary, setLoadingSummary] = useState(false)
+  const [summaryError, setSummaryError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -59,6 +62,8 @@ function App() {
       setMinistryTotal(0)
       setLoadingRecipients(false)
       setRecipientsError(null)
+      setLoadingSummary(false)
+      setSummaryError(null)
       return
     }
 
@@ -105,6 +110,31 @@ function App() {
   function handleSelectMinistry(ministry: string) {
     setSelectedMinistry(ministry)
     setSummary(null)
+    setSummaryError(null)
+    setLoadingSummary(false)
+  }
+
+  async function handleGenerateSummary() {
+    if (!selectedMinistry) {
+      return
+    }
+
+    const ministry = selectedMinistry
+    setLoadingSummary(true)
+    setSummaryError(null)
+
+    try {
+      const nextSummary = await fetchSummary(ministry)
+      setSummary(nextSummary)
+    } catch (error) {
+      console.error('Failed to generate summary:', error)
+      setSummary(null)
+      setSummaryError(
+        `Could not generate an AI summary for ${ministry}. Check the backend and OpenAI configuration, then try again.`
+      )
+    } finally {
+      setLoadingSummary(false)
+    }
   }
 
   return (
@@ -117,11 +147,11 @@ function App() {
           onSelect={handleSelectMinistry}
           loading={loadingMinistries}
         />
-        <span className="subtitle">Alberta Government Contract Analytics</span>
       </header>
 
       {ministriesError ? <div className="app-notice app-notice--error">{ministriesError}</div> : null}
       {recipientsError ? <div className="app-notice app-notice--error">{recipientsError}</div> : null}
+      {summaryError ? <div className="app-notice app-notice--error">{summaryError}</div> : null}
 
       <div className="app-layout">
         <main className="main-content">
@@ -143,13 +173,12 @@ function App() {
         <aside className="sidebar">
           <section className="card">
             <h2>AI Summary</h2>
-            <div className="placeholder">
-              {summary
-                ? summary
-                : selectedMinistry
-                  ? `Summary cleared for ${selectedMinistry}. Generate a new insight after data loads.`
-                  : 'AI-generated summary will appear here'}
-            </div>
+            <AISummary
+              ministry={selectedMinistry}
+              onGenerate={handleGenerateSummary}
+              summary={summary}
+              loading={loadingSummary}
+            />
           </section>
         </aside>
       </div>

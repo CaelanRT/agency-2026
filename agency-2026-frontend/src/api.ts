@@ -11,6 +11,10 @@ interface RecipientsResponse {
   ministry_total: number;
 }
 
+interface SummaryResponse {
+  summary: string;
+}
+
 export async function fetchMinistries(): Promise<string[]> {
   const response = await fetch(`${BASE_URL}/api/ministries`);
 
@@ -32,4 +36,17 @@ export async function fetchRecipients(ministry: string): Promise<RecipientsRespo
   }
 
   return (await response.json()) as RecipientsResponse;
+}
+
+export async function fetchSummary(ministry: string): Promise<string> {
+  const response = await fetch(
+    `${BASE_URL}/api/summary?ministry=${encodeURIComponent(ministry)}`
+  );
+
+  if (!response.ok) {
+    throw new Error(`Summary request failed with status ${response.status}`);
+  }
+
+  const data = (await response.json()) as SummaryResponse;
+  return data.summary;
 }
