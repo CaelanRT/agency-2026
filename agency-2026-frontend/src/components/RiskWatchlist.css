@@ -1,0 +1,215 @@
+.risk-watchlist {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(26, 58, 92, 0.12);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at top left, rgba(192, 86, 33, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(255, 250, 245, 0.92) 0%, #ffffff 100%);
+  overflow: hidden;
+}
+
+.risk-watchlist__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  width: 100%;
+  padding: var(--space-lg) var(--space-xl);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.risk-watchlist__toggle:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.risk-watchlist__header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  align-items: flex-start;
+  flex: 1;
+}
+
+.risk-watchlist__eyebrow {
+  margin: 0 0 var(--space-xs);
+  color: var(--warning);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.risk-watchlist__header h3 {
+  margin: 0;
+  color: var(--gray-900);
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.risk-watchlist__description {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--gray-600);
+  line-height: 1.6;
+}
+
+.risk-watchlist__chevron {
+  flex-shrink: 0;
+  color: var(--warning);
+  font-size: 22px;
+  line-height: 1;
+  transition: transform 140ms ease;
+}
+
+.risk-watchlist__chevron--open {
+  transform: rotate(180deg);
+}
+
+.risk-watchlist__content {
+  padding: 0 var(--space-xl) var(--space-xl);
+}
+
+.risk-watchlist__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.risk-watchlist__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border: 1px solid rgba(192, 86, 33, 0.16);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.risk-watchlist__item-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.risk-watchlist__rank,
+.risk-watchlist__score {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(192, 86, 33, 0.08);
+  color: var(--warning);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.risk-watchlist__body h4 {
+  margin: 0 0 var(--space-sm);
+  color: var(--gray-900);
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.risk-watchlist__signal,
+.risk-watchlist__detail {
+  margin: 0;
+  color: var(--gray-700);
+  line-height: 1.6;
+}
+
+.risk-watchlist__detail {
+  color: var(--gray-600);
+  font-size: 14px;
+}
+
+.risk-watchlist__action {
+  align-self: flex-start;
+  appearance: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  background: var(--warning);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.risk-watchlist__action:hover {
+  filter: brightness(1.05);
+}
+
+.risk-watchlist__empty {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  padding: var(--space-xl);
+  color: var(--gray-500);
+  text-align: center;
+  border: 1px dashed var(--gray-300);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #ffffff 0%, var(--gray-50) 100%);
+}
+
+.risk-watchlist__skeleton {
+  display: inline-block;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--gray-100) 0%,
+    var(--gray-200) 45%,
+    var(--gray-100) 100%
+  );
+  background-size: 200% 100%;
+  animation: risk-watchlist-shimmer 1.4s ease-in-out infinite;
+}
+
+.risk-watchlist__skeleton--eyebrow {
+  width: 72px;
+  height: 12px;
+}
+
+.risk-watchlist__skeleton--title {
+  width: 140px;
+  height: 24px;
+}
+
+.risk-watchlist__skeleton--metric {
+  width: 180px;
+  height: 14px;
+}
+
+.risk-watchlist__skeleton--detail {
+  width: 120px;
+  height: 14px;
+}
+
+@keyframes risk-watchlist-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 1100px) {
+  .risk-watchlist__toggle {
+    align-items: flex-start;
+  }
+
+  .risk-watchlist__header {
+    flex-direction: column;
+  }
+
+  .risk-watchlist__list {
+    grid-template-columns: 1fr;
+  }
+}

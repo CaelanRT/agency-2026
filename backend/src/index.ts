@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import pg from "pg";
 import OpenAI from "openai";
+import type { Request, Response } from "express";
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 3001);
@@ -36,6 +37,276 @@ export const pool = new pg.Pool({
   ssl: { rejectUnauthorized: false },
 });
 
+interface RecipientData {
+  recipient: string;
+  total_spend: number;
+  sole_source_spend: number;
+  share: number;
+}
+
+interface RecipientsResponse {
+  recipients: RecipientData[];
+  ministry_total: number;
+}
+
+interface MinistryRiskItem {
+  ministry: string;
+  top_vendor_share: number;
+  top_3_share: number;
+  sole_source_share: number;
+  total_spend: number;
+  risk_score: number;
+}
+
+interface InvestigationRequestBody {
+  query?: string;
+}
+
+interface InvestigationResponse {
+  answer: string;
+  evidence: string[];
+  steps: string[];
+  next_steps: string[];
+}
+
+type InvestigationIntent =
+  | { type: "overall_risk_ranking" }
+  | { type: "compare_ministries"; ministries: [string, string] }
+  | { type: "explain_ministry_risk"; ministry: string };
+
+function calculateRiskScore({
+  topVendorShare,
+  top3Share,
+  soleSourceShare,
+}: {
+  topVendorShare: number;
+  top3Share: number;
+  soleSourceShare: number;
+}) {
+  return Number(
+    (
+      topVendorShare * 0.45 +
+      top3Share * 0.35 +
+      soleSourceShare * 0.2
+    ).toFixed(4)
+  );
+}
+
+function formatPercent(value: number) {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function formatCurrency(value: number) {
+  return `$${Math.round(value).toLocaleString()}`;
+}
+
+function normalizeText(value: string) {
+  return value.toLowerCase();
+}
+
+function detectIntent(
+  query: string,
+  ministries: string[]
+): InvestigationIntent | null {
+  const normalizedQuery = normalizeText(query);
+  const matchedMinistries = ministries.filter((ministry) =>
+    normalizedQuery.includes(normalizeText(ministry))
+  );
+
+  if (
+    matchedMinistries.length >= 2 &&
+    /compare|versus|vs\b|against/.test(normalizedQuery)
+  ) {
+    return {
+      type: "compare_ministries",
+      ministries: [matchedMinistries[0], matchedMinistries[1]],
+    };
+  }
+
+  if (
+    matchedMinistries.length >= 1 &&
+    /why|explain|risky|risk in|risk for|investigate/.test(normalizedQuery)
+  ) {
+    return {
+      type: "explain_ministry_risk",
+      ministry: matchedMinistries[0],
+    };
+  }
+
+  if (
+    /riskiest|highest risk|overall risk|which ministry|rank|ranking|across ministries|across all ministries/.test(
+      normalizedQuery
+    )
+  ) {
+    return { type: "overall_risk_ranking" };
+  }
+
+  return null;
+}
+
+async function synthesizeInvestigationAnswer({
+  query,
+  evidence,
+  steps,
+  nextSteps,
+}: {
+  query: string;
+  evidence: string[];
+  steps: string[];
+  nextSteps: string[];
+}) {
+  const prompt = `You are a government procurement risk analyst. Answer the user's investigation request in 2-4 neutral, factual sentences. Use only the evidence provided. Do not invent facts or recommendations beyond the supplied evidence.
+
+User query: ${query}
+
+Evidence:
+- ${evidence.join("\n- ")}
+
+Analysis steps taken:
+- ${steps.join("\n- ")}
+
+Suggested next steps:
+- ${nextSteps.join("\n- ")}`;
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: prompt }],
+    max_tokens: 220,
+    temperature: 0.2,
+  });
+
+  return completion.choices[0]?.message?.content?.trim() ?? "";
+}
+
+async function buildOverallRiskRankingInvestigation(
+  query: string,
+  riskScan: MinistryRiskItem[]
+): Promise<InvestigationResponse> {
+  const topThree = riskScan.slice(0, 3);
+  const highestConcentration = [...riskScan].sort(
+    (a, b) => b.top_vendor_share - a.top_vendor_share
+  )[0];
+  const highestSoleSource = [...riskScan].sort(
+    (a, b) => b.sole_source_share - a.sole_source_share
+  )[0];
+
+  const evidence = [
+    `${topThree[0]?.ministry ?? "N/A"} has the highest composite risk score at ${topThree[0]?.risk_score.toFixed(2) ?? "0.00"}.`,
+    `${highestConcentration?.ministry ?? "N/A"} has the highest top-vendor share at ${formatPercent(highestConcentration?.top_vendor_share ?? 0)}.`,
+    `${highestSoleSource?.ministry ?? "N/A"} has the highest sole-source share at ${formatPercent(highestSoleSource?.sole_source_share ?? 0)}.`,
+  ];
+
+  const steps = [
+    "Loaded the ministry risk scan across all ministries.",
+    "Ranked ministries by the composite risk score.",
+    "Cross-checked which ministries lead on concentration and sole-source reliance.",
+  ];
+
+  const nextSteps = topThree
+    .slice(0, 2)
+    .map((item) => `Inspect top recipients and sole-source exposure in ${item.ministry}.`);
+
+  const answer = await synthesizeInvestigationAnswer({
+    query,
+    evidence,
+    steps,
+    nextSteps,
+  });
+
+  return { answer, evidence, steps, next_steps: nextSteps };
+}
+
+async function buildCompareMinistriesInvestigation(
+  query: string,
+  riskScan: MinistryRiskItem[],
+  ministries: [string, string]
+): Promise<InvestigationResponse> {
+  const [leftMinistry, rightMinistry] = ministries;
+  const left = riskScan.find((item) => item.ministry === leftMinistry);
+  const right = riskScan.find((item) => item.ministry === rightMinistry);
+
+  if (!left || !right) {
+    throw new Error("Could not find both ministries for comparison");
+  }
+
+  const evidence = [
+    `${left.ministry} risk score: ${left.risk_score.toFixed(2)} versus ${right.risk_score.toFixed(2)} for ${right.ministry}.`,
+    `${left.ministry} top-vendor share is ${formatPercent(left.top_vendor_share)} versus ${formatPercent(right.top_vendor_share)} for ${right.ministry}.`,
+    `${left.ministry} sole-source share is ${formatPercent(left.sole_source_share)} versus ${formatPercent(right.sole_source_share)} for ${right.ministry}.`,
+  ];
+
+  const steps = [
+    `Loaded risk metrics for ${left.ministry} and ${right.ministry}.`,
+    "Compared composite risk, vendor concentration, and sole-source reliance.",
+  ];
+
+  const nextSteps = [
+    `Open ${left.risk_score >= right.risk_score ? left.ministry : right.ministry} to inspect the top recipient table.`,
+    `Review whether the higher-risk ministry's leading vendors account for most spending.`,
+  ];
+
+  const answer = await synthesizeInvestigationAnswer({
+    query,
+    evidence,
+    steps,
+    nextSteps,
+  });
+
+  return { answer, evidence, steps, next_steps: nextSteps };
+}
+
+async function buildExplainMinistryRiskInvestigation(
+  query: string,
+  riskScan: MinistryRiskItem[],
+  ministry: string
+): Promise<InvestigationResponse> {
+  const riskItem = riskScan.find((item) => item.ministry === ministry);
+
+  if (!riskItem) {
+    throw new Error("Could not find the ministry requested for explanation");
+  }
+
+  const { recipients } = await getRecipientsData(ministry);
+  const topRecipient = recipients[0];
+  const highSoleSourceRecipients = recipients.filter(
+    (recipient) =>
+      recipient.total_spend > 0 &&
+      recipient.sole_source_spend / recipient.total_spend > 0.5
+  );
+
+  const evidence = [
+    `${ministry} has a composite risk score of ${riskItem.risk_score.toFixed(2)}.`,
+    `The top vendor share is ${formatPercent(riskItem.top_vendor_share)}, and the top 3 vendors account for ${formatPercent(riskItem.top_3_share)} of spending.`,
+    `The ministry's sole-source share is ${formatPercent(riskItem.sole_source_share)} across ${formatCurrency(riskItem.total_spend)} in observed spend.`,
+    topRecipient
+      ? `${topRecipient.recipient} is the largest recipient at ${formatPercent(topRecipient.share)} of ministry spend.`
+      : `No top recipient details were available for ${ministry}.`,
+    highSoleSourceRecipients.length > 0
+      ? `${highSoleSourceRecipients.length} of the top recipients have majority sole-source spend.`
+      : `None of the top recipients have majority sole-source spend.`,
+  ];
+
+  const steps = [
+    `Loaded the ministry risk scan entry for ${ministry}.`,
+    `Retrieved the top recipients for ${ministry}.`,
+    "Checked both concentration and sole-source signals.",
+  ];
+
+  const nextSteps = [
+    `Review the top recipient table for ${ministry}.`,
+    `Check whether ${topRecipient?.recipient ?? "the leading vendor"} appears across other ministries.`,
+  ];
+
+  const answer = await synthesizeInvestigationAnswer({
+    query,
+    evidence,
+    steps,
+    nextSteps,
+  });
+
+  return { answer, evidence, steps, next_steps: nextSteps };
+}
+
 app.get("/api/health", async (_req, res) => {
   try {
     const result = await pool.query("SELECT 1");
@@ -57,7 +328,7 @@ app.get("/api/ministries", async (_req, res) => {
   }
 });
 
-async function getRecipientsData(ministry: string) {
+async function getRecipientsData(ministry: string): Promise<RecipientsResponse> {
   const [topRecipients, soleTotals] = await Promise.all([
     pool.query(
       `SELECT recipient, SUM(amount) AS total_spend
@@ -96,7 +367,77 @@ async function getRecipientsData(ministry: string) {
   return { recipients, ministry_total: ministryTotal };
 }
 
-app.get("/api/recipients", async (req, res) => {
+async function getRiskScanData(): Promise<MinistryRiskItem[]> {
+  const [recipientTotals, soleSourceTotals] = await Promise.all([
+    pool.query(
+      `SELECT ministry, recipient, SUM(amount) AS total_spend
+       FROM ab.ab_contracts
+       WHERE ministry IS NOT NULL
+         AND recipient IS NOT NULL
+       GROUP BY ministry, recipient
+       ORDER BY ministry ASC, total_spend DESC`
+    ),
+    pool.query(
+      `SELECT ministry, SUM(amount) AS sole_source_total
+       FROM ab.ab_sole_source
+       WHERE ministry IS NOT NULL
+       GROUP BY ministry`
+    ),
+  ]);
+
+  const ministryRecipientTotals = new Map<string, number[]>();
+  const ministrySpendTotals = new Map<string, number>();
+
+  for (const row of recipientTotals.rows) {
+    const ministry = row.ministry as string;
+    const totalSpend = Number(row.total_spend);
+
+    ministryRecipientTotals.set(ministry, [
+      ...(ministryRecipientTotals.get(ministry) ?? []),
+      totalSpend,
+    ]);
+    ministrySpendTotals.set(
+      ministry,
+      (ministrySpendTotals.get(ministry) ?? 0) + totalSpend
+    );
+  }
+
+  const soleSourceByMinistry = new Map<string, number>(
+    soleSourceTotals.rows.map((row) => [
+      row.ministry as string,
+      Number(row.sole_source_total),
+    ])
+  );
+
+  return Array.from(ministryRecipientTotals.entries())
+    .map(([ministry, recipientValues]) => {
+      const totalSpend = ministrySpendTotals.get(ministry) ?? 0;
+      const topVendorSpend = recipientValues[0] ?? 0;
+      const top3Spend = recipientValues
+        .slice(0, 3)
+        .reduce((sum, amount) => sum + amount, 0);
+      const soleSourceSpend = soleSourceByMinistry.get(ministry) ?? 0;
+      const topVendorShare = totalSpend > 0 ? topVendorSpend / totalSpend : 0;
+      const top3Share = totalSpend > 0 ? top3Spend / totalSpend : 0;
+      const soleSourceShare = totalSpend > 0 ? soleSourceSpend / totalSpend : 0;
+
+      return {
+        ministry,
+        top_vendor_share: Number(topVendorShare.toFixed(4)),
+        top_3_share: Number(top3Share.toFixed(4)),
+        sole_source_share: Number(soleSourceShare.toFixed(4)),
+        total_spend: Number(totalSpend.toFixed(2)),
+        risk_score: calculateRiskScore({
+          topVendorShare,
+          top3Share,
+          soleSourceShare,
+        }),
+      };
+    })
+    .sort((a, b) => b.risk_score - a.risk_score);
+}
+
+app.get("/api/recipients", async (req: Request, res: Response) => {
   const ministry = req.query.ministry as string;
   if (!ministry) {
     res.status(400).json({ error: "ministry query param is required" });
@@ -112,7 +453,17 @@ app.get("/api/recipients", async (req, res) => {
   }
 });
 
-app.get("/api/summary", async (req, res) => {
+app.get("/api/risk-scan", async (_req: Request, res: Response) => {
+  try {
+    const ministries = await getRiskScanData();
+    res.json({ ministries });
+  } catch (err) {
+    console.error("Error running risk scan:", err);
+    res.status(500).json({ error: "Failed to scan ministry risk" });
+  }
+});
+
+app.get("/api/summary", async (req: Request, res: Response) => {
   const ministry = req.query.ministry as string;
   if (!ministry) {
     res.status(400).json({ error: "ministry query param is required" });
@@ -145,6 +496,59 @@ Number of vendors with sole-source contracts: ${recipients.filter((r) => r.sole_
   } catch (err) {
     console.error("Error generating summary:", err);
     res.status(500).json({ error: "Failed to generate summary" });
+  }
+});
+
+app.post("/api/investigate", async (req: Request, res: Response) => {
+  const query = (req.body as InvestigationRequestBody | undefined)?.query?.trim();
+
+  if (!query) {
+    res.status(400).json({ error: "query is required" });
+    return;
+  }
+
+  try {
+    const riskScan = await getRiskScanData();
+    const ministries = riskScan.map((item) => item.ministry);
+    const intent = detectIntent(query, ministries);
+
+    if (!intent) {
+      res.status(400).json({
+        error:
+          "Unsupported investigation query. Try ranking risky ministries, comparing two ministries, or asking why a ministry looks risky.",
+      });
+      return;
+    }
+
+    let result: InvestigationResponse;
+
+    switch (intent.type) {
+      case "overall_risk_ranking":
+        result = await buildOverallRiskRankingInvestigation(query, riskScan);
+        break;
+      case "compare_ministries":
+        result = await buildCompareMinistriesInvestigation(
+          query,
+          riskScan,
+          intent.ministries
+        );
+        break;
+      case "explain_ministry_risk":
+        result = await buildExplainMinistryRiskInvestigation(
+          query,
+          riskScan,
+          intent.ministry
+        );
+        break;
+      default:
+        res.status(400).json({ error: "Unsupported investigation query." });
+        return;
+    }
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error running investigation:", err);
+    res.status(500).json({ error: "Failed to run investigation" });
   }
 });
 

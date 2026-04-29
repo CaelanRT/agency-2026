@@ -1,6 +1,6 @@
 # 15: Stretch - Fiscal Year Filter
 
-**Status:** todo
+**Status:** idea
 **Priority:** low
 **Blocked by:** 13
 **Blocks:** none

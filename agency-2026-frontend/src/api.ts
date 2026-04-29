@@ -1,4 +1,4 @@
-import type { Recipient } from './types';
+import type { InvestigationResult, MinistryRiskItem, Recipient } from './types';
 
 const defaultBaseUrl = 'http://localhost:3001';
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
@@ -16,6 +16,14 @@ interface RecipientsResponse {
 
 interface SummaryResponse {
   summary: string;
+}
+
+interface RiskScanResponse {
+  ministries: MinistryRiskItem[];
+}
+
+interface InvestigationRequestBody {
+  query: string;
 }
 
 export async function fetchMinistries(): Promise<string[]> {
@@ -52,4 +60,31 @@ export async function fetchSummary(ministry: string): Promise<string> {
 
   const data = (await response.json()) as SummaryResponse;
   return data.summary;
+}
+
+export async function fetchRiskScan(): Promise<MinistryRiskItem[]> {
+  const response = await fetch(`${BASE_URL}/api/risk-scan`);
+
+  if (!response.ok) {
+    throw new Error(`Risk scan request failed with status ${response.status}`);
+  }
+
+  const data = (await response.json()) as RiskScanResponse;
+  return data.ministries;
+}
+
+export async function runInvestigation(query: string): Promise<InvestigationResult> {
+  const response = await fetch(`${BASE_URL}/api/investigate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ query } satisfies InvestigationRequestBody),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Investigation request failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as InvestigationResult;
 }

@@ -1,6 +1,6 @@
 # 14: Stretch - Bar Chart Visualization
 
-**Status:** todo
+**Status:** idea
 **Priority:** low
 **Blocked by:** 13
 **Blocks:** none
@@ -13,7 +13,7 @@ Add a bar chart showing top vendors by spend for visual impact in the demo.
 
 - [ ] Install `recharts` package
 - [ ] `src/components/SpendChart.tsx`
-- [ ] Horizontal or vertical bar chart of top 10 recipients by total spend
+- [ ] Horizontal or vertical bar chart of top 10 recipients by spend
 - [ ] Bars colored or segmented to show sole-source vs competitive spend
 - [ ] Responsive sizing
 - [ ] Integrated into the main dashboard layout (below or beside the table)

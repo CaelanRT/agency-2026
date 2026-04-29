@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react'
 import AISummary from './components/AISummary'
+import InvestigationPanel from './components/InvestigationPanel'
 import RecipientsTable from './components/RecipientsTable'
 import RiskIndicators from './components/RiskIndicators'
+import RiskWatchlist from './components/RiskWatchlist'
 import MinistrySelector from './components/MinistrySelector'
-import { fetchMinistries, fetchRecipients, fetchSummary } from './api'
-import type { Recipient } from './types'
+import {
+  fetchMinistries,
+  fetchRecipients,
+  fetchRiskScan,
+  fetchSummary,
+  runInvestigation,
+} from './api'
+import type { InvestigationResult, MinistryRiskItem, Recipient } from './types'
 import './App.css'
 
 function App() {
@@ -16,9 +24,16 @@ function App() {
   const [ministryTotal, setMinistryTotal] = useState(0)
   const [loadingRecipients, setLoadingRecipients] = useState(false)
   const [recipientsError, setRecipientsError] = useState<string | null>(null)
+  const [riskWatchlist, setRiskWatchlist] = useState<MinistryRiskItem[]>([])
+  const [loadingRiskWatchlist, setLoadingRiskWatchlist] = useState(true)
+  const [riskWatchlistError, setRiskWatchlistError] = useState<string | null>(null)
   const [summary, setSummary] = useState<string | null>(null)
   const [loadingSummary, setLoadingSummary] = useState(false)
   const [summaryError, setSummaryError] = useState<string | null>(null)
+  const [investigationQuery, setInvestigationQuery] = useState('')
+  const [investigationResult, setInvestigationResult] = useState<InvestigationResult | null>(null)
+  const [loadingInvestigation, setLoadingInvestigation] = useState(false)
+  const [investigationError, setInvestigationError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -50,6 +65,42 @@ function App() {
     }
 
     void loadMinistries()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadRiskWatchlist() {
+      setLoadingRiskWatchlist(true)
+      setRiskWatchlistError(null)
+
+      try {
+        const data = await fetchRiskScan()
+
+        if (!cancelled) {
+          setRiskWatchlist(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch risk watchlist:', error)
+
+        if (!cancelled) {
+          setRiskWatchlist([])
+          setRiskWatchlistError(
+            'Could not load the proactive risk watchlist. The ministry drill-down flow is still available.'
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingRiskWatchlist(false)
+        }
+      }
+    }
+
+    void loadRiskWatchlist()
 
     return () => {
       cancelled = true
@@ -114,6 +165,36 @@ function App() {
     setLoadingSummary(false)
   }
 
+  async function handleRunInvestigation(queryOverride?: string) {
+    const nextQuery = (queryOverride ?? investigationQuery).trim()
+
+    if (!nextQuery) {
+      return
+    }
+
+    setInvestigationQuery(nextQuery)
+    setLoadingInvestigation(true)
+    setInvestigationError(null)
+
+    try {
+      const result = await runInvestigation(nextQuery)
+      setInvestigationResult(result)
+    } catch (error) {
+      console.error('Failed to run investigation:', error)
+      setInvestigationResult(null)
+      setInvestigationError(
+        'Could not complete the investigation request. Try one of the suggested prompts or check the backend agent.'
+      )
+    } finally {
+      setLoadingInvestigation(false)
+    }
+  }
+
+  function handleUseInvestigationPrompt(prompt: string) {
+    setInvestigationQuery(prompt)
+    void handleRunInvestigation(prompt)
+  }
+
   async function handleGenerateSummary() {
     if (!selectedMinistry) {
       return
@@ -150,11 +231,32 @@ function App() {
       </header>
 
       {ministriesError ? <div className="app-notice app-notice--error">{ministriesError}</div> : null}
+      {riskWatchlistError ? (
+        <div className="app-notice app-notice--error">{riskWatchlistError}</div>
+      ) : null}
       {recipientsError ? <div className="app-notice app-notice--error">{recipientsError}</div> : null}
       {summaryError ? <div className="app-notice app-notice--error">{summaryError}</div> : null}
+      {investigationError ? (
+        <div className="app-notice app-notice--error">{investigationError}</div>
+      ) : null}
 
       <div className="app-layout">
         <main className="main-content">
+          <RiskWatchlist
+            items={riskWatchlist}
+            loading={loadingRiskWatchlist}
+            onSelectMinistry={handleSelectMinistry}
+          />
+
+          <InvestigationPanel
+            query={investigationQuery}
+            loading={loadingInvestigation}
+            result={investigationResult}
+            onQueryChange={setInvestigationQuery}
+            onSubmit={() => void handleRunInvestigation()}
+            onUsePrompt={handleUseInvestigationPrompt}
+          />
+
           <section className="card">
             <h2>Top Recipients</h2>
             <RecipientsTable recipients={recipients} loading={loadingRecipients} />
