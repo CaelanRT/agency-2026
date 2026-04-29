@@ -1,0 +1,322 @@
+# Product Requirements Document (PRD)
+
+## Product Name
+
+**Procurement Risk Radar (Alberta MVP)**
+
+---
+
+## 1. Overview
+
+Procurement Risk Radar is a lightweight analytics and AI-assisted dashboard that helps users explore Alberta government spending and quickly identify potential procurement risks such as vendor concentration and reliance on sole-source contracts.
+
+The MVP focuses on **one core workflow**:
+
+> “For a selected ministry, who receives the most funding, and are there any risk signals?”
+> 
+
+---
+
+## 2. Goals
+
+### Primary Goal
+
+Enable users to:
+
+- Select a ministry
+- View top funding recipients
+- Identify concentration and sole-source risk
+- Receive a plain-English AI-generated summary
+
+### Success Criteria (Hackathon)
+
+- Working UI with ministry filter
+- Backend queries BigQuery successfully
+- Displays top recipients (contracts)
+- Displays sole-source amounts
+- Generates AI summary
+- Demoable end-to-end in under 60 seconds
+
+---
+
+## 3. Scope
+
+### In Scope (MVP)
+
+- Alberta **contracts**
+- Alberta **sole source contracts**
+- Ministry-level filtering
+- Top recipients by spend
+- Basic risk indicators
+- AI-generated summary
+
+### Out of Scope
+
+- Complex entity resolution
+- Non-profit classification
+- Grants integration (optional stretch)
+- Multi-agent orchestration
+- Fraud detection claims
+
+---
+
+## 4. Data Sources
+
+### Primary Tables
+
+- `ab_contracts`
+    - ministry
+    - recipient
+    - amount
+    - display_fiscal_year
+- `ab_sole_source`
+    - recipient
+    - amount
+    - ministry (if available)
+
+### Optional (Stretch)
+
+- `ab_grants`
+
+---
+
+## 5. Core User Flow
+
+1. User opens app
+2. User selects a **ministry** from dropdown
+3. System fetches:
+    - Top recipients (contracts)
+    - Their total spend
+    - Their sole-source totals
+4. UI displays:
+    - Table of top recipients
+    - Basic metrics
+5. AI generates:
+    - Risk summary for selected ministry
+
+---
+
+## 6. Features
+
+### 6.1 Ministry Selector
+
+- Dropdown populated from distinct ministries in `ab_contracts`
+
+---
+
+### 6.2 Top Recipients Table
+
+Columns:
+
+- Recipient
+- Total Contract Spend
+- Sole Source Spend
+- % of Total Spend (optional but recommended)
+
+Limit:
+
+- Top 10 recipients by total spend
+
+---
+
+### 6.3 Risk Indicators (Simple)
+
+Computed values:
+
+- Top vendor share (% of total ministry spend)
+- Top 3 vendors share (optional)
+- Total sole-source proportion
+
+---
+
+### 6.4 AI Risk Summary
+
+### Input to AI:
+
+- Top vendor
+- Total spend
+- Vendor share %
+- Sole source totals
+
+### Output:
+
+Short paragraph:
+
+Example:
+
+> “Spending in this ministry is concentrated among a small number of vendors. The top vendor accounts for 62% of total contract value, with significant reliance on sole-source contracts, which may indicate reduced competition.”
+> 
+
+---
+
+## 7. Technical Architecture
+
+### Backend
+
+- Node.js + Express
+- BigQuery client (`@google-cloud/bigquery`)
+- REST API endpoints
+
+### Frontend
+
+- React (Vite)
+- Simple dashboard UI
+- Table + optional chart
+
+### AI Layer
+
+- OpenAI API (or equivalent)
+- Single prompt-based summary generation
+
+---
+
+## 8. API Design
+
+### GET `/api/ministries`
+
+Returns list of ministries
+
+---
+
+### GET `/api/recipients?ministry=...`
+
+Returns:
+
+```json
+[
+  {
+    "recipient": "Vendor A",
+    "total_spend": 50000000,
+    "sole_source_spend": 40000000,
+    "share": 0.62
+  }
+]
+```
+
+---
+
+### GET `/api/summary?ministry=...`
+
+Returns:
+
+```json
+{
+  "summary": "Spending is highly concentrated..."
+}
+```
+
+---
+
+## 9. Key SQL Queries
+
+### Top Recipients
+
+```sql
+SELECT
+  recipient,
+  SUM(amount) AS total_spend
+FROM `PROJECT.DATASET.ab_contracts`
+WHERE ministry = @ministry
+GROUP BY recipient
+ORDER BY total_spend DESC
+LIMIT 10;
+```
+
+---
+
+### Sole Source Totals
+
+```sql
+SELECT
+  recipient,
+  SUM(amount) AS sole_source_total
+FROM `PROJECT.DATASET.ab_sole_source`
+GROUP BY recipient;
+```
+
+---
+
+### Join (Backend merge)
+
+- Join on `recipient`
+- Compute share = recipient_total / ministry_total
+
+---
+
+## 10. UI Layout
+
+### Page Layout
+
+Top:
+
+- Title: Procurement Risk Radar
+- Ministry dropdown
+
+Middle:
+
+- Table: Top recipients
+
+Right or Bottom:
+
+- AI Summary box
+
+Optional:
+
+- Bar chart of top vendors
+
+---
+
+## 11. Risks & Mitigations
+
+| Risk | Mitigation |
+| --- | --- |
+| Dirty or inconsistent recipient names | Accept as-is for MVP |
+| Missing joins between datasets | Show partial data |
+| Time constraints | Focus on contracts only |
+| AI hallucination | Only summarize provided data |
+
+---
+
+## 12. Stretch Goals
+
+- Add grants data
+- Add fiscal year filter
+- Add department-level drilldown
+- Add risk scoring (low/medium/high)
+- Add charts (Recharts)
+
+---
+
+## 13. Demo Script (Important)
+
+1. Select ministry (e.g., Health)
+2. Show top vendors
+3. Highlight:
+    
+    > “Top vendor has 60% of spend”
+    > 
+4. Show sole-source column
+5. Click “Generate Insight”
+6. Read AI summary
+
+---
+
+## 14. Key Insight
+
+This product does not attempt to detect fraud.
+
+It surfaces patterns that:
+
+- reduce competition
+- increase dependency
+- may warrant further investigation
+
+---
+
+## 15. Definition of Done
+
+- User can select ministry
+- Data loads from BigQuery
+- Table renders correctly
+- AI summary generates
+- Demo runs smoothly
