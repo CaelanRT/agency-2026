@@ -35,6 +35,56 @@ app.get("/api/ministries", async (_req, res) => {
   }
 });
 
+app.get("/api/recipients", async (req, res) => {
+  const ministry = req.query.ministry as string;
+  if (!ministry) {
+    res.status(400).json({ error: "ministry query param is required" });
+    return;
+  }
+
+  try {
+    const [topRecipients, soleTotals] = await Promise.all([
+      pool.query(
+        `SELECT recipient, SUM(amount) AS total_spend
+         FROM ab.ab_contracts
+         WHERE ministry = $1
+         GROUP BY recipient
+         ORDER BY total_spend DESC
+         LIMIT 10`,
+        [ministry]
+      ),
+      pool.query(
+        `SELECT vendor AS recipient, SUM(amount) AS sole_source_total
+         FROM ab.ab_sole_source
+         WHERE ministry = $1
+         GROUP BY vendor`,
+        [ministry]
+      ),
+    ]);
+
+    const soleMap = new Map(
+      soleTotals.rows.map((r) => [r.recipient, Number(r.sole_source_total)])
+    );
+
+    const ministryTotal = topRecipients.rows.reduce(
+      (sum, r) => sum + Number(r.total_spend),
+      0
+    );
+
+    const recipients = topRecipients.rows.map((r) => ({
+      recipient: r.recipient,
+      total_spend: Number(r.total_spend),
+      sole_source_spend: soleMap.get(r.recipient) ?? 0,
+      share: ministryTotal > 0 ? Number(r.total_spend) / ministryTotal : 0,
+    }));
+
+    res.json({ recipients, ministry_total: ministryTotal });
+  } catch (err) {
+    console.error("Error fetching recipients:", err);
+    res.status(500).json({ error: "Failed to fetch recipients" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
