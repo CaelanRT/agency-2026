@@ -1,6 +1,6 @@
 # 11: Integrate Recipients Table + Risk Indicators with API
 
-**Status:** todo
+**Status:** completed
 **Priority:** high
 **Blocked by:** 04, 07, 08
 **Blocks:** 13
