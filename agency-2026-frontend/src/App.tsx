@@ -177,13 +177,15 @@ function App() {
     setInvestigationError(null)
 
     try {
-      const result = await runInvestigation(nextQuery)
+      const result = await runInvestigation(nextQuery, selectedMinistry)
       setInvestigationResult(result)
     } catch (error) {
       console.error('Failed to run investigation:', error)
       setInvestigationResult(null)
       setInvestigationError(
-        'Could not complete the investigation request. Try one of the suggested prompts or check the backend agent.'
+        error instanceof Error
+          ? error.message
+          : 'Could not complete the investigation request. Check the backend agent and try again.'
       )
     } finally {
       setLoadingInvestigation(false)

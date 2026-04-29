@@ -60,6 +60,7 @@ interface MinistryRiskItem {
 
 interface InvestigationRequestBody {
   query?: string;
+  ministry?: string;
 }
 
 interface InvestigationResponse {
@@ -104,29 +105,45 @@ function normalizeText(value: string) {
   return value.toLowerCase();
 }
 
+function uniqueMinistries(ministries: string[]) {
+  return Array.from(new Set(ministries));
+}
+
 function detectIntent(
   query: string,
-  ministries: string[]
+  ministries: string[],
+  selectedMinistry?: string
 ): InvestigationIntent | null {
   const normalizedQuery = normalizeText(query);
-  const matchedMinistries = ministries.filter((ministry) =>
-    normalizedQuery.includes(normalizeText(ministry))
+  const matchedMinistries = uniqueMinistries(
+    ministries.filter((ministry) =>
+      normalizedQuery.includes(normalizeText(ministry))
+    )
   );
+  const explainPattern =
+    /why|explain|risky|risk in|risk for|investigate|look risky|looks risky|risky|concentration|sole[- ]source|vendor concentration|exposure|concern/;
+  const comparePattern =
+    /compare|comparison|versus|vs\b|against|relative to|stack up|different|difference|better than|worse than/;
+  const overallPattern =
+    /riskiest|least risky|highest risk|lowest risk|overall risk|which ministry|rank|ranking|across ministries|across all ministries|most risky|who looks risky|top risk/;
+  const referencesSelectedMinistry =
+    /this ministry|selected ministry|current ministry|that ministry/.test(
+      normalizedQuery
+    );
 
-  if (
-    matchedMinistries.length >= 2 &&
-    /compare|versus|vs\b|against/.test(normalizedQuery)
-  ) {
+  const normalizedSelectedMinistry = selectedMinistry?.trim();
+  const selectedMinistryIsValid =
+    normalizedSelectedMinistry &&
+    ministries.includes(normalizedSelectedMinistry);
+
+  if (matchedMinistries.length >= 2 && comparePattern.test(normalizedQuery)) {
     return {
       type: "compare_ministries",
       ministries: [matchedMinistries[0], matchedMinistries[1]],
     };
   }
 
-  if (
-    matchedMinistries.length >= 1 &&
-    /why|explain|risky|risk in|risk for|investigate/.test(normalizedQuery)
-  ) {
+  if (matchedMinistries.length >= 1 && explainPattern.test(normalizedQuery)) {
     return {
       type: "explain_ministry_risk",
       ministry: matchedMinistries[0],
@@ -134,11 +151,52 @@ function detectIntent(
   }
 
   if (
-    /riskiest|highest risk|overall risk|which ministry|rank|ranking|across ministries|across all ministries/.test(
-      normalizedQuery
-    )
+    selectedMinistryIsValid &&
+    explainPattern.test(normalizedQuery) &&
+    (matchedMinistries.length === 0 || referencesSelectedMinistry)
   ) {
+    return {
+      type: "explain_ministry_risk",
+      ministry: normalizedSelectedMinistry,
+    };
+  }
+
+  if (overallPattern.test(normalizedQuery)) {
     return { type: "overall_risk_ranking" };
+  }
+
+  if (
+    selectedMinistryIsValid &&
+    matchedMinistries.length >= 1 &&
+    matchedMinistries[0] !== normalizedSelectedMinistry &&
+    comparePattern.test(normalizedQuery)
+  ) {
+    return {
+      type: "compare_ministries",
+      ministries: [normalizedSelectedMinistry, matchedMinistries[0]],
+    };
+  }
+
+  if (
+    selectedMinistryIsValid &&
+    explainPattern.test(normalizedQuery) &&
+    matchedMinistries.length === 0
+  ) {
+    return {
+      type: "explain_ministry_risk",
+      ministry: normalizedSelectedMinistry,
+    };
+  }
+
+  if (
+    matchedMinistries.length === 1 &&
+    !comparePattern.test(normalizedQuery) &&
+    !overallPattern.test(normalizedQuery)
+  ) {
+    return {
+      type: "explain_ministry_risk",
+      ministry: matchedMinistries[0],
+    };
   }
 
   return null;
@@ -500,7 +558,9 @@ Number of vendors with sole-source contracts: ${recipients.filter((r) => r.sole_
 });
 
 app.post("/api/investigate", async (req: Request, res: Response) => {
-  const query = (req.body as InvestigationRequestBody | undefined)?.query?.trim();
+  const body = req.body as InvestigationRequestBody | undefined;
+  const query = body?.query?.trim();
+  const selectedMinistry = body?.ministry?.trim();
 
   if (!query) {
     res.status(400).json({ error: "query is required" });
@@ -510,12 +570,12 @@ app.post("/api/investigate", async (req: Request, res: Response) => {
   try {
     const riskScan = await getRiskScanData();
     const ministries = riskScan.map((item) => item.ministry);
-    const intent = detectIntent(query, ministries);
+    const intent = detectIntent(query, ministries, selectedMinistry);
 
     if (!intent) {
       res.status(400).json({
         error:
-          "Unsupported investigation query. Try ranking risky ministries, comparing two ministries, or asking why a ministry looks risky.",
+          "Unsupported investigation query. Try asking which ministry looks riskiest, compare two ministries, or explain why the selected ministry looks risky.",
       });
       return;
     }

@@ -24,6 +24,16 @@ interface RiskScanResponse {
 
 interface InvestigationRequestBody {
   query: string;
+  ministry?: string;
+}
+
+async function readApiError(response: Response, fallbackMessage: string) {
+  try {
+    const data = (await response.json()) as { error?: string };
+    return data.error?.trim() || fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
 }
 
 export async function fetchMinistries(): Promise<string[]> {
@@ -73,17 +83,27 @@ export async function fetchRiskScan(): Promise<MinistryRiskItem[]> {
   return data.ministries;
 }
 
-export async function runInvestigation(query: string): Promise<InvestigationResult> {
+export async function runInvestigation(
+  query: string,
+  ministry?: string | null
+): Promise<InvestigationResult> {
   const response = await fetch(`${BASE_URL}/api/investigate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ query } satisfies InvestigationRequestBody),
+    body: JSON.stringify({
+      query,
+      ministry: ministry ?? undefined,
+    } satisfies InvestigationRequestBody),
   });
 
   if (!response.ok) {
-    throw new Error(`Investigation request failed with status ${response.status}`);
+    const message = await readApiError(
+      response,
+      `Investigation request failed with status ${response.status}`
+    );
+    throw new Error(message);
   }
 
   return (await response.json()) as InvestigationResult;

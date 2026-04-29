@@ -74,6 +74,10 @@ export default function InvestigationPanel({
               placeholder="Which ministry looks riskiest overall?"
               disabled={loading}
             />
+            <p className="investigation-panel__hint">
+              This demo currently supports a limited set of prompts: rank ministries, compare
+              ministries, or explain why a ministry looks risky.
+            </p>
             <div className="investigation-panel__actions">
               <button
                 className="investigation-panel__submit"

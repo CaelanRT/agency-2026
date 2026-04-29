@@ -22,3 +22,4 @@ Issues are numbered by layer so agents can pick up unblocked work:
 - **18-19**: Agentic frontend components - blocked by frontend shell
 - **20-21**: Agentic frontend-backend integration - blocked by respective backend + component
 - **22**: End-to-end agentic flow polish - blocked by 20-21
+- **23**: Open-ended investigation chat agent - blocked by 17 and 22
