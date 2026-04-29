@@ -1,6 +1,6 @@
 # 10: Integrate Ministry Selector with API
 
-**Status:** todo
+**Status:** completed
 **Priority:** high
 **Blocked by:** 03, 06
 **Blocks:** 13

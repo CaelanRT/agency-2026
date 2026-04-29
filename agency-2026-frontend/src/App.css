@@ -32,6 +32,21 @@
   margin: 0 auto;
 }
 
+.app-notice {
+  width: min(1400px, calc(100% - (var(--space-lg) * 2)));
+  margin: var(--space-lg) auto 0;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.app-notice--error {
+  color: var(--danger);
+  background: rgba(197, 48, 48, 0.08);
+  border: 1px solid rgba(197, 48, 48, 0.18);
+}
+
 .main-content {
   display: flex;
   flex-direction: column;
