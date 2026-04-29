@@ -1,6 +1,6 @@
 # 13: End-to-End Demo Flow and Polish
 
-**Status:** todo
+**Status:** completed
 **Priority:** high
 **Blocked by:** 10, 11, 12
 **Blocks:** 14

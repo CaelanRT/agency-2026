@@ -1,6 +1,9 @@
-export const BASE_URL = 'http://localhost:3001';
-
 import type { Recipient } from './types';
+
+const defaultBaseUrl = 'http://localhost:3001';
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+
+export const BASE_URL = (configuredBaseUrl || defaultBaseUrl).replace(/\/$/, '');
 
 interface MinistriesResponse {
   ministries: string[];

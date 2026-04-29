@@ -5,9 +5,28 @@ import pg from "pg";
 import OpenAI from "openai";
 
 const app = express();
-const PORT = 3001;
+const PORT = Number(process.env.PORT ?? 3001);
+const defaultOrigins = ["http://localhost:5173", "http://localhost:5174"];
+const configuredOrigins = process.env.CORS_ORIGIN
+  ?.split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const allowedOrigins = configuredOrigins?.length
+  ? configuredOrigins
+  : defaultOrigins;
 
-app.use(cors({ origin: "http://localhost:5174" }));
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
+  })
+);
 app.use(express.json());
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -130,5 +149,5 @@ Number of vendors with sole-source contracts: ${recipients.filter((r) => r.sole_
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
