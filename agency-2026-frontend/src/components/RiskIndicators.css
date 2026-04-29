@@ -1,0 +1,125 @@
+.risk-indicators {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.risk-indicators__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-height: 168px;
+  padding: var(--space-lg);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #ffffff 0%, var(--gray-50) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.risk-indicators__card--low {
+  border-color: rgba(39, 103, 73, 0.2);
+  background:
+    linear-gradient(180deg, rgba(39, 103, 73, 0.08) 0%, rgba(39, 103, 73, 0.02) 100%),
+    #ffffff;
+}
+
+.risk-indicators__card--medium {
+  border-color: rgba(192, 86, 33, 0.24);
+  background:
+    linear-gradient(180deg, rgba(192, 86, 33, 0.1) 0%, rgba(192, 86, 33, 0.03) 100%),
+    #ffffff;
+}
+
+.risk-indicators__card--high {
+  border-color: rgba(197, 48, 48, 0.24);
+  background:
+    linear-gradient(180deg, rgba(197, 48, 48, 0.1) 0%, rgba(197, 48, 48, 0.03) 100%),
+    #ffffff;
+}
+
+.risk-indicators__label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--gray-600);
+}
+
+.risk-indicators__value {
+  margin: 0;
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--gray-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.risk-indicators__helper {
+  margin: 0;
+  font-size: 14px;
+  color: var(--gray-600);
+  max-width: 28ch;
+}
+
+.risk-indicators__empty {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  padding: var(--space-xl);
+  color: var(--gray-500);
+  text-align: center;
+  border: 1px dashed var(--gray-300);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #ffffff 0%, var(--gray-50) 100%);
+}
+
+.risk-indicators__skeleton {
+  display: inline-block;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--gray-100) 0%,
+    var(--gray-200) 45%,
+    var(--gray-100) 100%
+  );
+  background-size: 200% 100%;
+  animation: risk-indicators-shimmer 1.4s ease-in-out infinite;
+}
+
+.risk-indicators__skeleton--label {
+  width: 112px;
+  height: 12px;
+}
+
+.risk-indicators__skeleton--value {
+  width: 96px;
+  height: 34px;
+}
+
+.risk-indicators__skeleton--helper {
+  width: 100%;
+  max-width: 180px;
+  height: 14px;
+  margin-top: auto;
+}
+
+@keyframes risk-indicators-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 960px) {
+  .risk-indicators {
+    grid-template-columns: 1fr;
+  }
+
+  .risk-indicators__card {
+    min-height: 0;
+  }
+}
